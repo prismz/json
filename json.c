@@ -7,63 +7,146 @@
 #include <string.h>
 #include <ctype.h>
 
-struct hashmap *new_hashmap(int capacity)
+HMItem *new_item(char *key, void *val, void (*k_free_func)(void *), void (*v_free_func)(void *))
 {
-        struct hashmap *h = json_calloc(1, sizeof(struct hashmap));
-        h->n = 0;
-        h->capacity = capacity;
-        h->items = json_calloc(capacity, sizeof(struct hashmap_item *));
+	HMItem *item = json_calloc(1, sizeof(*item));
 
-        return h;
+	item->key = key;
+	item->val = val;
+	item->k_free_func = k_free_func;
+	item->v_free_func = v_free_func;
+
+	return item;
 }
 
-struct hashmap_item *new_hashmap_item(char *key, void *val, bool used)
+void free_item(HMItem *item)
 {
-        struct hashmap_item *hmi = json_calloc(1, sizeof(hashmap_item));
-        hmi->key = key;
-        hmi->val = val;
-        hmi->used = used;
+	if (item == NULL)
+		return;
 
-        return hmi;
+	if (item->key != NULL && item->k_free_func != NULL)
+		item->k_free_func(item->key);
+	if (item->val != NULL && item->v_free_func != NULL)
+		item->v_free_func(item->val);
+
+	free(item);
 }
 
-/* djb2 hash method */
-unsigned long hashmap_hash(struct hashmap *h, char *str)
+HashMap *new_hashmap(size_t capacity)
 {
-        unsigned long h = 5831;
-        int c;
-        while (c = *str++)
-                hash = ((hash << 5) + hash) + c;
+	HashMap *map = json_calloc(1, sizeof(*map));
 
-        return hash % h->capacity;
+	map->can_store = capacity;
+	map->stored = 0;
+	map->items = json_calloc(map->can_store, sizeof(HMItem *));
+
+	return map;
 }
 
-void hashmap_insert(struct hashmap *h, char *key, void *val)
+void free_hashmap(HashMap *map)
 {
-        unsigned int idx = hashmap_hash(h, key);
-        unsigned int start_idx = idx;
+	if (map == NULL)
+		return;
 
-        struct hashmap_item *current = h->items[idx];
+	for (size_t i = 0; i < map->can_store; i++) {
+		free_item(map->items[i]);
+	}
 
-        for (;;) {
-                if (!current)
-                        break;
+	free(map->items);
+	free(map);
+}
 
-                /* already exists */
-                if (strcmp(current->key, key) == 0) {
-                        current->val = val;
-                        return;
-                }
+void check_hashmap_capacity(HashMap *map, size_t n)
+{
+	if (!(map->stored + n + 1 > map->can_store)) {
+		return;
+	}
 
-                idx++;
-                current = h->items[idx];
-        }
+        int ns_a = (n + 8 > 32) ? (n + 8) : 32;
+	size_t new_size = map->can_store + ns_a;
+	HMItem **new = calloc(new_size, sizeof(HMItem *));
 
-        /* not already in the list */
-        struct hashmap_item *hmi = new_hashmap_item(key, val, true);
-        if (h->items[start_idx]
-        h->items[start_idx] = hmi;
-        h->n++;
+	for (size_t i = 0; i < map->stored; i++) {
+		HMItem *item = map->items[i];
+		if (item != NULL) {
+			new[i] = item;
+		}
+	}
+
+	free(map->items);
+	map->can_store = new_size;
+	map->items = new;
+}
+
+void hashmap_set(HashMap *map, HMItem *item)
+{
+	check_hashmap_capacity(map, 1);
+	uint64_t hash = hashmap_hash_func(item->key);
+	size_t index = (size_t)(hash & (uint64_t)(map->can_store - 1));
+
+	/* find an empty entry */
+	while (map->items[index] != NULL) {
+		if (strcmp(item->key, map->items[index]->key) == 0) {
+			free_item(map->items[index]);
+			map->items[index] = item;
+			return;
+		}
+
+		index++;
+		if (index >= map->can_store)
+			index = 0;
+	}
+
+	map->items[index] = item;
+	map->stored++;
+}
+
+/* TODO: https://github.com/benhoyt/ht/blob/master/ht.c */
+uint64_t hashmap_hash_func(char *key)
+{
+	uint64_t hash = FNV_OFFSET;
+	for (const char* p = key; *p; p++) {
+		hash ^= (uint64_t)(unsigned char)(*p);
+		hash *= FNV_PRIME;
+	}
+	return hash;
+}
+
+void *hashmap_index(HashMap *map, char *key)
+{
+	uint64_t hash = hashmap_hash_func(key);
+	size_t index = (size_t)(hash & (uint64_t)(map->can_store - 1));
+
+	while (map->items[index] != NULL) {
+		if (strcmp(map->items[index]->key, key) == 0)
+			return map->items[index]->val;
+
+		/* collision */
+		index++;
+		if (index >= map->can_store)
+			index = 0;
+	}
+
+	return NULL;
+}
+
+void hashmap_remove(HashMap *map, char *key)
+{
+	uint64_t hash = hashmap_hash_func(key);
+	size_t index = (size_t)(hash & (uint64_t)(map->can_store - 1));
+
+	while (map->items[index] != NULL) {
+		if (strcmp(map->items[index]->key, key) == 0) {
+			free_item(map->items[index]);
+			map->items[index] = NULL;
+			map->stored--;
+		}
+
+		/* collision */
+		index++;
+		if (index >= map->can_store)
+			index = 0;
+	}
 }
 
 #ifndef json_error
@@ -152,7 +235,7 @@ struct json *json_parse_dict_tuple(char *str, int *idx)
         struct json *val = json_parse_item(str + val_start, &val_end_idx);
         val_end_idx += val_start;
 
-        char *key = json_key->data.string; 
+        char *key = json_key->data.string;
         json_free(json_key);
 
         j->key = key;
@@ -178,7 +261,7 @@ struct json *json_parse_dict(char *str, int *idx)
 
         size_t dict_capacity = 8;
         size_t dict_i = 0;
-        struct json **json_data_dict = json_calloc(dict_capacity, 
+        struct json **json_data_dict = json_calloc(dict_capacity,
                         sizeof(struct json *));
 
         j->data.json_data_dict = json_data_dict;
@@ -193,7 +276,7 @@ struct json *json_parse_dict(char *str, int *idx)
                 int end_idx;
                 struct json *current_key_value_pair = json_parse_dict_tuple(
                                 str + current_idx, &end_idx);
-                
+
                 current_idx += end_idx;
 
                 for (; current_idx < len; current_idx++) {
@@ -210,7 +293,7 @@ struct json *json_parse_dict(char *str, int *idx)
 
 append:
                 i = current_idx;
-                
+
                 if (dict_i + 1 > dict_capacity) {
                         json_data_dict = json_realloc(json_data_dict,
                                 sizeof(struct json *) * (dict_capacity += 8));
@@ -247,7 +330,7 @@ struct json *json_parse_string(char *str, int *idx)
         size_t size = 1024;
         size_t buffer_i = 0;
         char *buffer = json_malloc(sizeof(char) * size);
-       
+
         bool escaped = false;
         size_t i;
         for (i = start; i < len; i++) {
@@ -259,7 +342,7 @@ struct json *json_parse_string(char *str, int *idx)
 
                 if (!escaped && c == '"')
                         break;
-                
+
                 if (buffer_i + 2 > size) {
                         buffer = json_realloc(buffer, sizeof(char) *
                                         (size += 512));
@@ -271,7 +354,7 @@ struct json *json_parse_string(char *str, int *idx)
                 if (escaped)
                         escaped = false;
         }
-        
+
         if (idx != NULL)
                 *idx = i + 1;
 
@@ -329,7 +412,7 @@ struct json *json_parse_array(char *str, int *idx)
                         i = current_point + 1;
                         break;
                 }
-                
+
                 i = current_point;
         }
 
@@ -426,7 +509,7 @@ struct json *json_parse_null(char *str, int *idx)
                         break;
         }
 
-        int end_idx = start + strlen("null"); 
+        int end_idx = start + strlen("null");
         if (idx != NULL)
                 *idx = end_idx;
 
@@ -443,7 +526,7 @@ struct json *json_parse_item(char *str, int *idx)
                 if (!isspace(str[start]))
                         break;
         }
-       
+
         int end_idx = 0;
         struct json *j;
 
@@ -505,11 +588,11 @@ char *json_read_file(char *path)
         size_t capacity = 1024;
         size_t buffer_i = 0;
         char *buffer = json_calloc(1, sizeof(char) * capacity);
-        
+
         char c;
         while ((c = fgetc(fp)) != EOF) {
                 if (buffer_i + 2 > capacity) {
-                        buffer = json_realloc(buffer, 
+                        buffer = json_realloc(buffer,
                                         sizeof(char) * (capacity += 512));
                 }
 
