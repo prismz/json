@@ -40,7 +40,8 @@ typedef struct {
 	size_t stored;
 } HashMap;
 
-HMItem *new_item(char *key, void *val, void (*k_free_func)(void *), void (*v_free_func)(void *));
+HMItem *new_item(char *key, void *val,
+                void (*k_free_func)(void *), void (*v_free_func)(void *));
 void free_item(HMItem *item);
 HashMap *new_hashmap(size_t capacity);
 void free_hashmap(HashMap *map);

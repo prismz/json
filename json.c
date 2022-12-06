@@ -58,19 +58,17 @@ void free_hashmap(HashMap *map)
 
 void check_hashmap_capacity(HashMap *map, size_t n)
 {
-	if (!(map->stored + n + 1 > map->can_store)) {
+	if (!((map->stored + n + 1) > map->can_store))
 		return;
-	}
 
-        int ns_a = (n + 8 > 32) ? (n + 8) : 32;
+        int ns_a = ((n + 8) > 32) ? (n + 8) : 32;
 	size_t new_size = map->can_store + ns_a;
 	HMItem **new = calloc(new_size, sizeof(HMItem *));
 
-	for (size_t i = 0; i < map->stored; i++) {
+	for (size_t i = 0; i < map->can_store; i++) {
 		HMItem *item = map->items[i];
-		if (item != NULL) {
+		if (item != NULL)
 			new[i] = item;
-		}
 	}
 
 	free(map->items);
@@ -186,7 +184,7 @@ void free_json_item(struct json *j)
         case json_array:
                 for (int i = 0; i < j->n_data_items; i++)
                         free_json_item(j->data.json_data_array[i]);
-                
+
                 free(j->data.json_data_array);
                 break;
         case json_dict:
@@ -221,7 +219,7 @@ void print_json(struct json *j)
                 dict = j->data.json_data_dict;
                 for (int i = 0; i < (int)dict->can_store; i++) {
                         HMItem *item = dict->items[i];
-                        
+
                         if (item == NULL)
                                 continue;
 
@@ -285,7 +283,7 @@ struct json *json_parse_dict(char *str, int *idx)
                         break;
         }
 
-        HashMap *dict = new_hashmap(32);
+        HashMap *dict = new_hashmap(16);
         j->data.json_data_dict = dict;
 
         bool done = false;
