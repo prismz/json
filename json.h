@@ -47,18 +47,19 @@ void free_hashmap(HashMap *map);
 void check_hashmap_capacity(HashMap *map, size_t n);
 void hashmap_set(HashMap *map, HMItem *item);
 
-#define FNV_OFFSET 14695981039346656037UL
-#define FNV_PRIME 1099511628211UL
 /*
  * 64-bit FNV-1a hash:
  * https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
  * https://github.com/benhoyt/ht/blob/master/ht.c
  */
+#define FNV_OFFSET 14695981039346656037UL
+#define FNV_PRIME 1099511628211UL
 uint64_t hashmap_hash_func(char *key);
+
 void *hashmap_index(HashMap *map, char *key);
 void hashmap_remove(HashMap *map, char *key);
 
-/* JSON */
+/* Begin JSON implementation */
 
 typedef enum json_t {
 	json_bool,
@@ -98,10 +99,12 @@ struct json *json_parse_bool(char *str, int *idx);
 struct json *json_parse_null(char *str, int *idx);
 struct json *json_parse_item(char *str, int *idx);
 
+#define json_parse(str) json_parse_item(str, NULL)
+
 struct json *json_get_array_item(struct json *arr, int idx);
 struct json *json_get_dict_item(struct json *dict, char *key);
-int json_get_size(struct json *dict_or_list);
-int json_get_capacity(struct json *dict_or_list);
+int json_get_size(struct json *arr);
+int json_get_capacity(struct json *arr);
 
 char *json_read_file(char *path);
 

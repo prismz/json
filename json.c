@@ -150,6 +150,8 @@ void hashmap_remove(HashMap *map, char *key)
 	}
 }
 
+/* Begin JSON implementation */
+
 #ifndef json_error
 
 void json_error(char *fmt, ...)
@@ -193,6 +195,8 @@ void free_json_item(struct json *j)
         default:
                 break;
         }
+
+        free(j);
 }
 
 void print_json(struct json *j)
@@ -215,7 +219,12 @@ void print_json(struct json *j)
                 break;
         case json_dict:
                 dict = j->data.json_data_dict;
-                for (int i = 0; i < dict->stored; i++) {
+                for (int i = 0; i < (int)dict->can_store; i++) {
+                        HMItem *item = dict->items[i];
+                        
+                        if (item == NULL)
+                                continue;
+
                         printf("\"%s\": ", dict->items[i]->key);
                         print_json(dict->items[i]->val);
                 }
@@ -576,15 +585,18 @@ struct json *json_get_array_item(struct json *arr, int idx)
 
 struct json *json_get_dict_item(struct json *dict, char *key)
 {
+        HashMap *map = dict->data.json_data_dict;
+        return (struct json *)hashmap_index(map, key);
 }
 
-int json_get_size(struct json *dict_or_list)
+int json_get_size(struct json *arr)
 {
-
+        return arr->n_data_items;
 }
 
-int json_get_capacity(struct json *dict_or_list)
+int json_get_capacity(struct json *arr)
 {
+        return arr->data_list_capacity;
 }
 
 char *json_read_file(char *path)
@@ -615,6 +627,9 @@ char *json_read_file(char *path)
 
 int main(void)
 {
-        int i;
-        struct json *j = json_parse_item("{ \"test\": 1 }", &i);
+        char *contents = json_read_file("example2");
+        struct json *j = json_parse(contents);
+
+        free_json_item(j);
+        free(contents);
 }
