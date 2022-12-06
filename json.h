@@ -65,7 +65,6 @@ typedef enum json_t {
 	json_string,
 	json_array,
 	json_dict,
-        json_dict_item,
 	json_number,
 	json_null
 } json_t;
@@ -76,7 +75,7 @@ typedef union {
 	bool boolean;
 	struct json *json_data;
         struct json **json_data_array;
-        struct json **json_data_dict;  /* TODO: hashmap */
+        HashMap *json_data_dict;  /* TODO: hashmap */
 } json_data;
 
 struct json {
@@ -88,8 +87,9 @@ struct json {
 };
 
 struct json *new_json(void);
+void free_json_item(struct json *j);
 void print_json(struct json *j);
-struct json *json_parse_dict_tuple(char *str, int *idx);
+HMItem *json_parse_dict_tuple(char *str, int *idx);
 struct json *json_parse_dict(char *str, int *idx);
 struct json *json_parse_string(char *str, int *idx);
 struct json *json_parse_array(char *str, int *idx);

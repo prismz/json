@@ -7,7 +7,8 @@
 #include <string.h>
 #include <ctype.h>
 
-HMItem *new_item(char *key, void *val, void (*k_free_func)(void *), void (*v_free_func)(void *))
+HMItem *new_item(char *key, void *val,
+                void (*k_free_func)(void *), void (*v_free_func)(void *))
 {
 	HMItem *item = json_calloc(1, sizeof(*item));
 
@@ -175,8 +176,28 @@ struct json *new_json(void)
         return j;
 }
 
+void free_json_item(struct json *j)
+{
+        switch (j->type) {
+        case json_string:
+                free(j->data.string);
+                break;
+        case json_array:
+                for (int i = 0; i < j->n_data_items; i++)
+                        free_json_item(j->data.json_data_array[i]);
+
+                break;
+        case json_dict:
+                free_hashmap(j->data.json_data_dict);
+                break;
+        default:
+                break;
+        }
+}
+
 void print_json(struct json *j)
 {
+        HashMap *dict;
         switch (j->type) {
         case json_bool:
                 if (j->data.boolean)
@@ -193,12 +214,11 @@ void print_json(struct json *j)
                         print_json(j->data.json_data_array[i]);
                 break;
         case json_dict:
-                for (int i = 0; i < j->n_data_items; i++)
-                        print_json(j->data.json_data_dict[i]);
-                break;
-        case json_dict_item:
-                printf("%s: ", j->key);
-                print_json(j->data.json_data);
+                dict = j->data.json_data_dict;
+                for (int i = 0; i < dict->stored; i++) {
+                        printf("\"%s\": ", dict->items[i]->key);
+                        print_json(dict->items[i]->val);
+                }
                 break;
         case json_number:
                 printf("%f\n", j->data.number);
@@ -209,11 +229,8 @@ void print_json(struct json *j)
         }
 }
 
-struct json *json_parse_dict_tuple(char *str, int *idx)
+HMItem *json_parse_dict_tuple(char *str, int *idx)
 {
-        struct json *j = new_json();
-        j->type = json_dict_item;
-
         size_t len = strlen(str);
         size_t start;
         for (start = 0; start < len; start++) {
@@ -238,13 +255,13 @@ struct json *json_parse_dict_tuple(char *str, int *idx)
         char *key = json_key->data.string;
         json_free(json_key);
 
-        j->key = key;
-        j->data.json_data = val;
-
         if (idx != NULL)
                 *idx = val_end_idx;
 
-        return j;
+        struct HMItem *tuple = new_item(key, val, free,
+                        hashmap_item_free_func(free_json_item));
+
+        return tuple;
 }
 
 struct json *json_parse_dict(char *str, int *idx)
@@ -259,12 +276,8 @@ struct json *json_parse_dict(char *str, int *idx)
                         break;
         }
 
-        size_t dict_capacity = 8;
-        size_t dict_i = 0;
-        struct json **json_data_dict = json_calloc(dict_capacity,
-                        sizeof(struct json *));
-
-        j->data.json_data_dict = json_data_dict;
+        HashMap *dict = new_hashmap(32);
+        j->data.json_data_dict = dict;
 
         bool done = false;
         size_t current_idx = start + 1;
@@ -274,7 +287,7 @@ struct json *json_parse_dict(char *str, int *idx)
                         break;
 
                 int end_idx;
-                struct json *current_key_value_pair = json_parse_dict_tuple(
+                HMItem *current_tuple = json_parse_dict_tuple(
                                 str + current_idx, &end_idx);
 
                 current_idx += end_idx;
@@ -294,19 +307,14 @@ struct json *json_parse_dict(char *str, int *idx)
 append:
                 i = current_idx;
 
-                if (dict_i + 1 > dict_capacity) {
-                        json_data_dict = json_realloc(json_data_dict,
-                                sizeof(struct json *) * (dict_capacity += 8));
-                }
-
-                json_data_dict[dict_i++] = current_key_value_pair;
+                hashmap_set(dict, current_tuple);
 
                 if (done)
                         break;
         }
 
-        j->n_data_items = dict_i;
-        j->data_list_capacity = dict_capacity;
+        j->n_data_items = j->data.json_data_dict->stored;
+        j->data_list_capacity = j->data.json_data_dict->can_store;
 
         if (idx != NULL)
                 *idx = current_idx;
@@ -563,7 +571,7 @@ struct json *json_get_array_item(struct json *arr, int idx)
         if (idx >= arr->n_data_items)
                 return NULL;
 
-        return arr->data.json_data_dict[idx];
+        return arr->data.json_data_array[idx];
 }
 
 struct json *json_get_dict_item(struct json *dict, char *key)
@@ -607,8 +615,6 @@ char *json_read_file(char *path)
 
 int main(void)
 {
-        char *contents = json_read_file("example");
         int i;
-        struct json *j = json_parse_item(contents, &i);
-        print_json(j);
+        struct json *j = json_parse_item("{ \"test\": 1 }", &i);
 }
