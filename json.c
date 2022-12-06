@@ -49,9 +49,8 @@ void free_hashmap(HashMap *map)
 	if (map == NULL)
 		return;
 
-	for (size_t i = 0; i < map->can_store; i++) {
+	for (size_t i = 0; i < map->can_store; i++)
 		free_item(map->items[i]);
-	}
 
 	free(map->items);
 	free(map);
@@ -187,7 +186,8 @@ void free_json_item(struct json *j)
         case json_array:
                 for (int i = 0; i < j->n_data_items; i++)
                         free_json_item(j->data.json_data_array[i]);
-
+                
+                free(j->data.json_data_array);
                 break;
         case json_dict:
                 free_hashmap(j->data.json_data_dict);
@@ -262,7 +262,7 @@ HMItem *json_parse_dict_tuple(char *str, int *idx)
         val_end_idx += val_start;
 
         char *key = json_key->data.string;
-        json_free(json_key);
+        free(json_key);
 
         if (idx != NULL)
                 *idx = val_end_idx;
