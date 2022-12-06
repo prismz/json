@@ -336,6 +336,14 @@ struct json *json_parse_string(char *str, int *idx)
 
         size_t len = strlen(str);
 
+        if (strncmp(str, "\"\"", strlen("\"\"")) == 0) {
+                j->data.string = strdup("");
+                if (idx != NULL)
+                        *idx = 2;
+
+                return j;
+        }
+
         size_t start;
         for (start = 0; start < len; start++) {
                 if (!isspace(str[start]) && str[start] != '"')
@@ -370,10 +378,14 @@ struct json *json_parse_string(char *str, int *idx)
                         escaped = false;
         }
 
+        if (i != start)
+                i++;
+
         if (idx != NULL)
-                *idx = i + 1;
+                *idx = i;
 
         j->data.string = buffer;
+
         return j;
 }
 
@@ -625,9 +637,11 @@ char *json_read_file(char *path)
 
 int main(void)
 {
-        char *contents = json_read_file("example2");
-        struct json *j = json_parse(contents);
+        char *str = json_read_file("example2");
+        struct json *j = json_parse(str);
+
+        print_json(j);
 
         free_json_item(j);
-        free(contents);
+        free(str);
 }
