@@ -332,8 +332,10 @@ struct json *json_parse_dict(char *str, int *idx)
         size_t current_idx = start + 1;
         for (size_t i = start + 1; i < len; i++) {
                 char c = str[i];
-                if (c == '}')
+                if (c == '}') {
+                        current_idx++;
                         break;
+                }
 
                 int end_idx;
                 HMItem *current_tuple = json_parse_dict_tuple(
@@ -745,19 +747,4 @@ char *json_read_file(char *path)
         fclose(fp);
 
         return buffer;
-}
-
-int main(void)
-{
-        char *str = json_read_file("samples/sample2");
-        if (str == NULL) {
-                fprintf(stderr, "failed to read file\n");
-                return 1;
-        }
-
-        struct json *j = json_parse(str);
-
-
-        free_json_item(j);
-        free(str);
 }

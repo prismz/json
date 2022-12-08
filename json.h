@@ -5,15 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifndef json_custom_alloc
-
-#define json_malloc malloc
-#define json_calloc calloc
-#define json_realloc realloc
-#define json_free free
-
-#endif  /* json_custom_alloc */
-
 #ifndef json_error
 void json_error(char *fmt, ...);
 #endif  /* json_error */
@@ -106,7 +97,13 @@ struct json *json_get_array_item(struct json *arr, int idx);
 struct json *json_get_dict_item(struct json *dict, char *key);
 int json_get_size(struct json *arr);
 int json_get_capacity(struct json *arr);
-
 char *json_read_file(char *path);
+
+#define json_get_string(j) (j->data.string)
+#define json_get_bool(j) (j->data.boolean)
+#define json_get_number(j) (j->data.number)
+#define json_get_data(j) (j->data.json_data)
+#define json_get_array(j) (j->data.json_data_array)
+#define json_get_dict(j) (j->data.json_data_dict)
 
 #endif  /* JSON_H */
