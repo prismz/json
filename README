@@ -1,17 +1,34 @@
 json
 ----
 
-A simple JSON library in C. Currently in development. Comes with a hashmap
-implementation. 
+A simple JSON library in C with no dependencies other than the C standard
+library. Comes with a hashmap implementation. 
 
-Include `json.h` and add `json.c` to your project. The following functions are
-provided:
+Include `json.h` and add `json.c` to your project. The following functions and
+macros are provided:
         
         json_parse(char *)
+        free_json_item(struct json *)
+
         json_get_array_item(struct json *, int)
         json_get_dict_item(struct json *, char *)
+
         json_get_size(struct json *)
         json_get_capacity(struct json *)
-        free_json_item(struct json *)
+
+        json_get_string(struct json *)
+        json_get_bool(struct json *)
+        json_get_number(struct json *)
+        json_get_data(struct json *)
+        json_get_array(struct json *)
+        json_get_dict(struct json *)
+
+        json_read_file(char *)
+
+Macros beginning with json_get_ are used to access the data of a parsed JSON
+item. For example:
+       
+        struct json *j = json_parse("abc");
+        char *data = json_get_string(j);  /* data now equals "abc" */
 
 Further information can be obtained by reading the source code.
