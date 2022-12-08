@@ -45,8 +45,8 @@ HMItem *new_item(char *key, void *val,
 void free_item(HMItem *item);
 HashMap *new_hashmap(size_t capacity);
 void free_hashmap(HashMap *map);
-void check_hashmap_capacity(HashMap *map, size_t n);
-void hashmap_set(HashMap *map, HMItem *item);
+int check_hashmap_capacity(HashMap *map, size_t n);
+int hashmap_set(HashMap *map, HMItem *item);
 
 /*
  * 64-bit FNV-1a hash:
@@ -77,7 +77,7 @@ typedef union {
 	bool boolean;
 	struct json *json_data;
         struct json **json_data_array;
-        HashMap *json_data_dict;  /* TODO: hashmap */
+        HashMap *json_data_dict;  
 } json_data;
 
 struct json {
