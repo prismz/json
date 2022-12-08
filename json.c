@@ -10,7 +10,9 @@
 HMItem *new_item(char *key, void *val,
                 void (*k_free_func)(void *), void (*v_free_func)(void *))
 {
-	HMItem *item = json_calloc(1, sizeof(*item));
+	HMItem *item = calloc(1, sizeof(*item));
+        if (item == NULL)
+                return NULL;
 
 	item->key = key;
 	item->val = val;
@@ -36,10 +38,16 @@ void free_item(HMItem *item)
 HashMap *new_hashmap(size_t capacity)
 {
 	HashMap *map = json_calloc(1, sizeof(*map));
+        if (map == NULL)
+                return NULL;
 
 	map->can_store = capacity;
 	map->stored = 0;
 	map->items = json_calloc(map->can_store, sizeof(HMItem *));
+        if (map->items != NULL) {
+                free(map);
+                return NULL;
+        }
 
 	return map;
 }
@@ -56,14 +64,16 @@ void free_hashmap(HashMap *map)
 	free(map);
 }
 
-void check_hashmap_capacity(HashMap *map, size_t n)
+int check_hashmap_capacity(HashMap *map, size_t n)
 {
 	if (!((map->stored + n + 1) > map->can_store))
-		return;
+		return 0;
 
         int ns_a = ((n + 8) > 32) ? (n + 8) : 32;
 	size_t new_size = map->can_store + ns_a;
 	HMItem **new = calloc(new_size, sizeof(HMItem *));
+        if (new == NULL)
+                return 1;
 
 	for (size_t i = 0; i < map->can_store; i++) {
 		HMItem *item = map->items[i];
@@ -74,6 +84,8 @@ void check_hashmap_capacity(HashMap *map, size_t n)
 	free(map->items);
 	map->can_store = new_size;
 	map->items = new;
+
+        return 0;
 }
 
 void hashmap_set(HashMap *map, HMItem *item)
@@ -168,7 +180,9 @@ void json_error(char *fmt, ...)
 
 struct json *new_json(void)
 {
-        struct json *j = json_calloc(1, sizeof(struct json));
+        struct json *j = calloc(1, sizeof(struct json));
+        if (j == NULL)
+                return NULL;
 
         j->type = json_null;
 
@@ -177,6 +191,9 @@ struct json *new_json(void)
 
 void free_json_item(struct json *j)
 {
+        if (j == NULL)
+                return;
+
         switch (j->type) {
         case json_string:
                 free(j->data.string);
@@ -247,6 +264,9 @@ HMItem *json_parse_dict_tuple(char *str, int *idx)
 
         int key_end_idx;
         struct json *json_key = json_parse_string(str + start, &key_end_idx);
+        if (json_key == NULL)
+                return NULL;
+
         key_end_idx += start;
 
         size_t val_start;
@@ -257,6 +277,11 @@ HMItem *json_parse_dict_tuple(char *str, int *idx)
 
         int val_end_idx;
         struct json *val = json_parse_item(str + val_start, &val_end_idx);
+        if (val == NULL) {
+                json_free_item(json_key);
+                return NULL;
+        }
+
         val_end_idx += val_start;
 
         char *key = json_key->data.string;
