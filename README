@@ -28,7 +28,7 @@ macros are provided:
 Macros beginning with json_get_ are used to access the data of a parsed JSON
 item. For example:
        
-        struct json *j = json_parse("abc");
+        struct json *j = json_parse("\"abc\"");
         char *data = json_get_string(j);  /* data now equals "abc" */
 
 Further information can be obtained by reading the source code.
