@@ -74,18 +74,9 @@ fail:
         print_json(j);
 }
 
-
 int main(void)
 {
         test1();
         test2();
         test3();
-
-        char *contents = json_read_file("../samples/sample2");
-        struct json *j = json_parse(contents);
-
-        print_json(j);
-
-        free_json_item(j);
-        free(contents);
 }
