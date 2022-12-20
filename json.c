@@ -332,6 +332,12 @@ struct json *json_parse_dict(char *str, int *idx)
         size_t current_idx = start + 1;
         for (size_t i = start + 1; i < len; i++) {
                 char c = str[i];
+
+                if (isspace(c)) {
+                        current_idx++;
+                        continue;
+                }
+
                 if (c == '}') {
                         current_idx++;
                         break;
@@ -366,7 +372,7 @@ append:
                 if (hashmap_set(dict, current_tuple)) {
                         free_json_item(j);
                         return NULL;
-                }
+                } 
 
                 if (done)
                         break;
@@ -493,6 +499,14 @@ struct json *json_parse_array(char *str, int *idx)
         }
         
         j->data.json_data_array = array;
+
+        if (str[start]== ']') {
+                j->n_data_items = array_i;
+                j->data_list_capacity = capacity;
+                if (idx != NULL)
+                        *idx = start + 1;
+                return j;
+        }
 
         size_t current_point = start;
         size_t i;
