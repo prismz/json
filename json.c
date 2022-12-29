@@ -745,6 +745,91 @@ int json_get_capacity(struct json *arr)
         return arr->data_list_capacity;
 }
 
+bool _is_whole_number(char *s)
+{
+        size_t len = strlen(s);
+        for (size_t i = 0; i < len; i++) {
+                if (!isdigit(s[i]))
+                        return false;
+        }
+
+        return true;
+}
+
+struct json *json_access(struct json *j, ...)
+{
+        va_list ap;
+        va_start(ap, j);
+
+        struct json *current = j;
+
+        char *arg;
+        while ((arg = va_arg(ap, char *)) != NULL) {
+                struct json *s;
+                if (_is_whole_number(arg)) {
+                        int d;
+                        sscanf(arg, "%d", &d);
+
+                        s = json_get_array_item(current, d);
+                        if (s == NULL)
+                                return NULL;
+                } else {
+                        s = json_get_dict_item(current, arg);
+                        if (s == NULL)
+                                return NULL;
+                }
+
+
+                current = s;
+        }
+
+        va_end(ap);
+
+        return current;
+}
+
+struct json *json_safe_access(struct json *j, char *fmt, ...)
+{
+        /* if fmt is read-only strtok() will fail */
+        char *fmt_cpy = strdup(fmt);  
+        if (fmt_cpy == NULL)
+                return NULL;
+
+        va_list ap;
+        va_start(ap, fmt);
+
+        struct json *current = j;
+
+        char *ptr = strtok(fmt_cpy, " ");
+        while (ptr != NULL) {
+                if (strcmp(ptr, "%s") == 0) {
+                        char *arg = va_arg(ap, char *);
+                        current = json_get_dict_item(current, arg);
+                        if (current == NULL)
+                                goto fail;
+                } else if (strcmp(ptr, "%d") == 0) {
+                        int arg = va_arg(ap, int);
+                        current = json_get_array_item(current, arg);
+                        if (current == NULL)
+                                goto fail;
+                } else {
+                        goto fail;
+                }
+
+                ptr = strtok(NULL, " ");
+        }
+
+        free(fmt_cpy);
+        va_end(ap);
+
+        return current;
+
+fail:
+        free(fmt_cpy);
+        va_end(ap);
+        return NULL;
+}
+
 char *json_read_file(char *path)
 {
         FILE *fp = fopen(path, "rb");

@@ -79,4 +79,16 @@ int main(void)
         test1();
         test2();
         test3();
+
+        char *contents = json_read_file("../samples/sample1.json");
+        struct json *j = json_parse(contents);
+
+        struct json *data1 = json_safe_access(j, "%s %s %s %s %s %s %d", "glossary", "GlossDiv", "GlossList", "GlossEntry", "GlossDef", "GlossSeeAlso", 0);
+        struct json *data2 = json_access(j, "glossary", "GlossDiv", "GlossList", "GlossEntry", "GlossDef", "GlossSeeAlso", "0", NULL);
+
+        print_json(data1);
+        print_json(data2);
+
+        free_json_item(j);
+        free(contents);
 }

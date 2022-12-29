@@ -10,6 +10,9 @@ macros are provided:
         json_parse(char *)
         free_json_item(struct json *)
 
+        json_access(struct json *, ...)                /* NOTE BELOW */
+        json_safe_access(struct json *, char *, ...);  /* NOTE BELOW */
+
         json_get_array_item(struct json *, int)
         json_get_dict_item(struct json *, char *)
 
@@ -30,5 +33,32 @@ item. For example:
        
         struct json *j = json_parse("\"abc\"");
         char *data = json_get_string(j);  /* data now equals "abc" */
+
+json_access() is a bit of a strange function. I added it to easily access deeply
+nested information. Generally, the function works like this:
+        
+        json_access(j, "index1", "index2", "0", "1", NULL);
+
+as opposed to:
+
+        json_get_array_item(json_get_array_item(
+                json_get_dict_item(
+                json_get_dict_item(j, "index1"), "index2"), 0), 1
+        );
+
+The list of arguments to json_access() must end with NULL. You may notice that
+array indices are also strings. This is because you can not mix types within
+va_list. This will also result in conflicts if you have a dictionary with keys
+that are numbers. 
+
+The only way around this would be to provide a format string similar to the one
+used by printf() and its various related functions, but this further complicates
+the function. If you would like to guarantee that everything behaves as expected
+or if you are working with dictionaries that use integers as keys, use the
+json_safe_access() function. It works as follows:
+
+        json_safe_access(j, "%s %s %d %d", "index1", "index2", 0, 1);
+
+There is no need for NULL at the end.
 
 Further information can be obtained by reading the source code.

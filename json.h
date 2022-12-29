@@ -115,6 +115,10 @@ struct json *json_get_array_item(struct json *arr, int idx);
 struct json *json_get_dict_item(struct json *dict, char *key);
 int json_get_size(struct json *arr);
 int json_get_capacity(struct json *arr);
+
+struct json *json_access(struct json *j, ...);
+struct json *json_safe_access(struct json *j, char *fmt, ...);
+
 char *json_read_file(char *path);
 
 #define json_get_string(j) (j->data.string)
