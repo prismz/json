@@ -2,31 +2,98 @@ json
 ----
 
 A simple JSON library in C with no dependencies other than the C standard
-library. Comes with a hashmap implementation. 
+library. Comes with a hashmap implementation. To use the hashmap implementation,
+read the last part of this document.
 
-Include `json.h` and add `json.c` to your project. The following functions and
-macros are provided:
+Include json.h and add json.c to your project. The following functions, macros,
+and structs are provided:
+
+        typedef enum json_t {
+                json_bool,
+                json_string,
+                json_array,
+                json_dict,
+                json_number,
+                json_null
+        } json_t;
+
+        typedef union {
+                double number;
+                char *string;
+                bool boolean;
+                struct json *json_data;
+                struct json **json_data_array;
+                HashMap *json_data_dict;
+        } json_data;
+
+        struct json {
+                json_t type;
+                char *key;                  /* If a dictionary item */
+                int n_data_items;           /* Length (if applicable) */
+                size_t data_list_capacity;  /* Capacity (if applicable) */
+                json_data data;
+        };
         
-        json_parse(char *)
-        free_json_item(struct json *)
+        struct json *    json_parse(char *)
+        void             free_json_item(struct json *)
 
-        json_access(struct json *, ...)                /* NOTE BELOW */
-        json_safe_access(struct json *, char *, ...);  /* NOTE BELOW */
+        /* READ BELOW ABOUT THESE TWO FUNCTIONS */
+        struct json *    json_access(struct json *, ...)                
+        struct json *    json_safe_access(struct json *, char *, ...);  
 
-        json_get_array_item(struct json *, int)
-        json_get_dict_item(struct json *, char *)
+        /* 
+         * The following will access json data with a key or array index.
+         * You must use json_get_TYPE to access the data in the appropriate 
+         * type, or use the json_get_array_TYPE or json_get_dict_TYPE family
+         * of functions.
+         */
+        struct json *    json_get_array_item(struct json *, int)
+        struct json *    json_get_dict_item(struct json *, char *)
 
-        json_get_size(struct json *)
-        json_get_capacity(struct json *)
+        /* Use these to access information about a dictionary or an array. */
+        int              json_get_size(struct json *)
+        int              json_get_capacity(struct json *)
 
-        json_get_string(struct json *)
-        json_get_bool(struct json *)
-        json_get_number(struct json *)
-        json_get_data(struct json *)
-        json_get_array(struct json *)
-        json_get_dict(struct json *)
+        /* Access functions */
+        char *           json_get_string(struct json *)
+        bool             json_get_bool(struct json *)
+        double           json_get_number(struct json *)
+        struct json *    json_get_data(struct json *)
+        struct json *    json_get_array(struct json *)
+        struct json *    json_get_dict(struct json *)
 
-        json_read_file(char *)
+        /*
+         * Function to read a file into a (char *) buffer.
+         * Note that there is no limit on file size, and the buffer will be
+         * grown infinitely. This function is used for testing, but it is left
+         * in for user convenience.
+         */
+        char *           json_read_file(char *)
+
+        /* 
+         * The following macros are equivalent to
+         * json_get_TYPE(json_get_array_item(j, idx or key))
+         */
+        char *           json_get_array_string(struct json *, int)
+        bool             json_get_array_bool(struct json *, int)
+        double           json_get_array_number(struct json *, int)
+        struct json *    json_get_array_data(struct json *, int)
+        struct json *    json_get_array_array(struct json *, int)
+        struct json *    json_get_array_dict(struct json *, int)
+
+        /* 
+         * These functions also have a corresponding json_get_dict_TYPE()
+         * function for accessing dictionaries. Just replace int with a key
+         * of type (char *) as follows:
+         */
+
+        char *           json_get_dict_string(struct json *, char *)
+        bool             json_get_dict_bool(struct json *, char *)
+        double           json_get_dict_number(struct json *, char *)
+        struct json *    json_get_dict_data(struct json *, char *)
+        struct json *    json_get_dict_array(struct json *, char *)
+        struct json *    json_get_dict_dict(struct json *, char *)
+
 
 Macros beginning with json_get_ are used to access the data of a parsed JSON
 item. For example:
@@ -43,10 +110,10 @@ as opposed to:
 
         json_get_array_item(json_get_array_item(
                 json_get_dict_item(
-                json_get_dict_item(j, "index1"), "index2"), 0), 1
+                        json_get_dict_item(j, "index1"), "index2"), 0), 1
         );
 
-The list of arguments to json_access() must end with NULL. You may notice that
+The list of arguments to json_access() MUST end with NULL. You may notice that
 array indices are also strings. This is because you can not mix types within
 va_list. This will also result in conflicts if you have a dictionary with keys
 that are numbers. 
@@ -59,6 +126,64 @@ json_safe_access() function. It works as follows:
 
         json_safe_access(j, "%s %s %d %d", "index1", "index2", 0, 1);
 
-There is no need for NULL at the end.
+There is no need for NULL at the end. Only the %d and %s formatters are 
+supported.
 
-Further information can be obtained by reading the source code.
+Further information can be obtained by reading the source code. Read below
+to use the hashmap implementation.
+
+hashmap
+-------
+
+This library comes with a builtin hashmap implementation. The following 
+functions, macros, and structs are provided:
+
+        typedef struct HMItem HMItem;
+        struct HMItem {
+                char *key;
+                char *val;
+
+                /* Free functions for key and val, respectively. */
+                void (*k_free_func)(void *);
+                void (*v_free_func)(void *);
+        };
+
+        /* 
+         * This will cast a free() function for your items into a function
+         * that can be passed to new_item().
+         */
+        hashmap_item_free_func(f) 
+
+        HMItem *new_item(char *key, void *val,
+                void (*k_free_func)(void *), void (*v_free_func)(void *))
+
+        void free_item(HMItem *item)
+        HashMap *new_hashmap(size_t capacity);
+        void free_hashmap(HashMap *map);
+
+        /* 
+         * Will check if the hashmap can hold N more entries. If not, resize.
+         * Returns 0 on success, 1 on failure.
+         */
+        int check_hashmap_capacity(HashMap *map, size_t n);
+        int hashmap_set(HashMap *map, HMItem *item);
+
+        uint64_t hashmap_hash_func(char *key);
+        
+        void *hashmap_index(HashMap *map, char *key);
+        void hashmap_remove(HashMap *map, char *key);
+
+This may look like a lot, but I will explain it.
+
+Create a new hashmap with the new_hashmap() function. To add items, 
+create an HMItem with the new_item() function. k_free_func and v_free_func can
+be NULL, which means your item does not need to be freed along with the hashmap.
+The free_functions are only necessary if you are using a struct for your items
+with elements that need to be freed to avoid memory leaks. 
+
+Use free() for the key's free function.
+
+Once you have an HMItem, use hashmap_set() to add it to the hashmap. There is
+no need to check for overflow yourself, the function will do it automatically.
+
+Once you are done, use free_hashmap() to free the hashmap.

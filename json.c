@@ -183,23 +183,6 @@ void hashmap_remove(HashMap *map, char *key)
 
 /* Begin JSON implementation */
 
-#ifndef json_error
-
-void json_error(char *fmt, ...)
-{
-        va_list ap;
-        va_start(ap, fmt);
-
-        fprintf(stderr, "error: ");
-        vfprintf(stderr, fmt, ap);
-        fprintf(stderr, "\n");
-
-        va_end(ap);
-        exit(1);
-}
-
-#endif  /* json_error */
-
 struct json *new_json(void)
 {
         struct json *j = calloc(1, sizeof(struct json));

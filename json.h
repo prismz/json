@@ -23,10 +23,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifndef json_error
-void json_error(char *fmt, ...);
-#endif  /* json_error */
-
 /* hashmap */
 #define JSONLIB_MAX(a, b) ((a) > (b)) ? (a) : (b)
 
