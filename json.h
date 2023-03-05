@@ -128,4 +128,40 @@ char *json_read_file(char *path);
 #define json_get_array(j) (j->data.json_data_array)
 #define json_get_dict(j) (j->data.json_data_dict)
 
+#define json_get_array_string(arr, i) (json_get_string(\
+                        json_get_array_item(arr, i)))
+
+#define json_get_array_bool(arr, i) (json_get_bool(\
+                        json_get_array_item(arr, i)))
+
+#define json_get_array_number(arr, i) (json_get_number(\
+                        json_get_array_item(arr, i)))
+
+#define json_get_array_data(arr, i) (json_get_data(\
+                        json_get_array_item(arr, i)))
+
+#define json_get_array_array(arr, i) (json_get_array(\
+                        json_get_array_item(arr, i)))
+
+#define json_get_array_dict(arr, i) (json_get_dict(\
+                        json_get_array_item(arr, i)))
+
+#define json_get_dict_string(dict, str) (json_get_string(\
+                        json_get_dict_item(dict, str)))
+
+#define json_get_dict_bool(dict, str) (json_get_bool(\
+                        json_get_dict_item(dict, str)))
+
+#define json_get_dict_number(dict, str) (json_get_number(\
+                        json_get_dict_item(dict, str)))
+
+#define json_get_dict_data(dict, str) (json_get_data(\
+                        json_get_dict_item(dict, str)))
+
+#define json_get_dict_array(dict, str) (json_get_array(\
+                        json_get_dict_item(dict, str)))
+
+#define json_get_dict_dict(dict, str) (json_get_dict(\
+                        json_get_dict_item(dict, str)))
+
 #endif  /* JSON_H */
