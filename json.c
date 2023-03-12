@@ -148,15 +148,24 @@ void *hashmap_index(HashMap *map, char *key)
 {
 	uint64_t hash = hashmap_hash_func(key);
 	size_t index = (size_t)(hash & (uint64_t)(map->can_store - 1));
+        int wrapped = 0;
 
-	while (map->items[index] != NULL) {
+	for (;;) {
+                if (map->items[index] == NULL)
+                        goto collision;
+
 		if (strcmp(map->items[index]->key, key) == 0)
 			return map->items[index]->val;
 
-		/* collision */
+collision:
 		index++;
-		if (index >= map->can_store)
+		if (index >= map->can_store) {  /* wrap */
 			index = 0;
+                        wrapped = 1;
+                }
+
+                if (wrapped && index >= map->can_store)
+                        return NULL;
 	}
 
 	return NULL;
