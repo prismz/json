@@ -148,7 +148,6 @@ void *hashmap_index(HashMap *map, char *key)
 {
 	uint64_t hash = hashmap_hash_func(key);
 	size_t index = (size_t)(hash & (uint64_t)(map->can_store - 1));
-        int wrapped = 0;
 
         if (map->items[index] == NULL)
                 goto collision;
