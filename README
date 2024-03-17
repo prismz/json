@@ -1,5 +1,6 @@
 json
 ----
+CURRENTLY NO ERROR CHECKING - don't use for projects that could receive incorrect data.
 
 A simple JSON library in C with no dependencies other than the C standard
 library. Comes with a hashmap implementation. To use the hashmap implementation,
